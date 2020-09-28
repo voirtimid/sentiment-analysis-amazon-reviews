@@ -1,11 +1,12 @@
 from dealWithLexicons_afinn_nrc_ import *
 import numpy as np
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 from nltk.tokenize import word_tokenize
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, roc_auc_score, accuracy_score, confusion_matrix
+from sklearn.metrics import f1_score, roc_auc_score, accuracy_score, roc_curve, auc
 
 train_data_filename = "datasets/test.ft.txt"
 labels_train_data = []
@@ -68,6 +69,26 @@ print('Accuracy score: {:0.4}'.format(accuracy_score(y_test, 1 * (preds > 0.5)))
 print('F1 score: {:0.4}'.format(f1_score(y_test, 1 * (preds > 0.5))))
 print('ROC AUC score: {:0.4}'.format(roc_auc_score(y_test, preds)))
 
+
+def perf_measure(y_actual, y_hat):
+    TP = 0
+    FP = 0
+    TN = 0
+    FN = 0
+
+    for i in range(len(y_hat)):
+        if y_actual[i] == y_hat[i] == 1:
+            TP += 1
+        if y_hat[i] == 1 and y_actual[i] != y_hat[i]:
+            FP += 1
+        if y_actual[i] == y_hat[i] == 0:
+            TN += 1
+        if y_hat[i] == 0 and y_actual[i] != y_hat[i]:
+            FN += 1
+
+    return TP, FP, TN, FN
+
+
 preds_normalized = []
 
 for el in preds:
@@ -75,4 +96,18 @@ for el in preds:
         preds_normalized.append(1)
     else:
         preds_normalized.append(0)
-print('Confusion matrix:' + confusion_matrix(y_test, preds_normalized))
+print('Confusion matrix:' + str(perf_measure(y_test, preds_normalized)))
+
+fpr, tpr, threshold = roc_curve(y_test, preds)
+roc_auc = auc(fpr, tpr)
+
+plt.title('Receiver Operating Characteristic')
+plt.plot(fpr, tpr, 'b', label='AUC = %0.2f' % roc_auc)
+plt.legend(loc='lower right')
+plt.plot([0, 1], [0, 1], 'r--')
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+plt.ylabel('True Positive Rate')
+plt.xlabel('False Positive Rate')
+plt.show()
+plt.savefig("plots/roc_curve.png")
